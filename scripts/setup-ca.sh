@@ -308,8 +308,26 @@ create_root_ca() {
     log_info "Generating Root CA private key (4096-bit RSA)..."
     log_warn "You will be prompted to enter a passphrase. REMEMBER THIS PASSPHRASE!"
 
-    openssl genpkey -algorithm RSA -aes256 \
+    # Prompt for passphrase
+    read -s -p "Enter passphrase for Root CA private key: " ROOT_CA_PASS
+    echo ""
+    read -s -p "Verify passphrase for Root CA private key: " ROOT_CA_PASS_VERIFY
+    echo ""
+
+    if [ "$ROOT_CA_PASS" != "$ROOT_CA_PASS_VERIFY" ]; then
+        log_error "Passphrases do not match!"
+        exit 1
+    fi
+
+    if [ -z "$ROOT_CA_PASS" ]; then
+        log_error "Passphrase cannot be empty!"
+        exit 1
+    fi
+
+    openssl genpkey -algorithm RSA \
+        -aes-256-cbc \
         -pkeyopt rsa_keygen_bits:4096 \
+        -pass pass:"$ROOT_CA_PASS" \
         -out "$ROOT_CA_DIR/private/ca.key.pem"
 
     chmod 400 "$ROOT_CA_DIR/private/ca.key.pem"
@@ -321,6 +339,7 @@ create_root_ca() {
         -key "$ROOT_CA_DIR/private/ca.key.pem" \
         -new -x509 -days 7300 -sha256 \
         -extensions v3_ca \
+        -passin pass:"$ROOT_CA_PASS" \
         -out "$ROOT_CA_DIR/certs/ca.cert.pem" \
         -subj "/C=$COUNTRY/ST=$STATE/L=$LOCALITY/O=$ORGANIZATION/OU=$ORGANIZATION Root CA/CN=$ROOT_CN/emailAddress=$EMAIL"
 
@@ -341,8 +360,26 @@ create_intermediate_ca() {
     log_info "Generating Intermediate CA private key (4096-bit RSA)..."
     log_warn "You will be prompted to enter a passphrase for Intermediate CA."
 
-    openssl genpkey -algorithm RSA -aes256 \
+    # Prompt for Intermediate CA passphrase
+    read -s -p "Enter passphrase for Intermediate CA private key: " INTERMEDIATE_CA_PASS
+    echo ""
+    read -s -p "Verify passphrase for Intermediate CA private key: " INTERMEDIATE_CA_PASS_VERIFY
+    echo ""
+
+    if [ "$INTERMEDIATE_CA_PASS" != "$INTERMEDIATE_CA_PASS_VERIFY" ]; then
+        log_error "Passphrases do not match!"
+        exit 1
+    fi
+
+    if [ -z "$INTERMEDIATE_CA_PASS" ]; then
+        log_error "Passphrase cannot be empty!"
+        exit 1
+    fi
+
+    openssl genpkey -algorithm RSA \
+        -aes-256-cbc \
         -pkeyopt rsa_keygen_bits:4096 \
+        -pass pass:"$INTERMEDIATE_CA_PASS" \
         -out "$INTERMEDIATE_CA_DIR/private/intermediate.key.pem"
 
     chmod 400 "$INTERMEDIATE_CA_DIR/private/intermediate.key.pem"
@@ -353,16 +390,17 @@ create_intermediate_ca() {
     openssl req -config "$INTERMEDIATE_CA_DIR/openssl.cnf" \
         -new -sha256 \
         -key "$INTERMEDIATE_CA_DIR/private/intermediate.key.pem" \
+        -passin pass:"$INTERMEDIATE_CA_PASS" \
         -out "$INTERMEDIATE_CA_DIR/csr/intermediate.csr.pem" \
         -subj "/C=$COUNTRY/ST=$STATE/L=$LOCALITY/O=$ORGANIZATION/OU=$ORGANIZATION Intermediate CA/CN=$INTERMEDIATE_CN/emailAddress=$EMAIL"
 
     # Root CA signs Intermediate CA certificate
     log_info "Root CA signing Intermediate CA certificate (10 years validity)..."
-    log_warn "You will be prompted to enter Root CA passphrase."
 
     openssl ca -config "$ROOT_CA_DIR/openssl.cnf" \
         -extensions v3_intermediate_ca \
         -days 3650 -notext -md sha256 \
+        -passin pass:"$ROOT_CA_PASS" \
         -in "$INTERMEDIATE_CA_DIR/csr/intermediate.csr.pem" \
         -out "$INTERMEDIATE_CA_DIR/certs/intermediate.cert.pem" \
         -batch
@@ -396,13 +434,19 @@ generate_crls() {
 
     # Root CA CRL
     openssl ca -config "$ROOT_CA_DIR/openssl.cnf" \
+        -passin pass:"$ROOT_CA_PASS" \
         -gencrl -out "$ROOT_CA_DIR/crl/ca.crl.pem"
 
     # Intermediate CA CRL
     openssl ca -config "$INTERMEDIATE_CA_DIR/openssl.cnf" \
+        -passin pass:"$INTERMEDIATE_CA_PASS" \
         -gencrl -out "$INTERMEDIATE_CA_DIR/crl/intermediate.crl.pem"
 
     log_info "CRLs generated successfully"
+
+    # Clear passphrases from memory
+    unset ROOT_CA_PASS
+    unset INTERMEDIATE_CA_PASS
 }
 
 # Create summary
