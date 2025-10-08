@@ -53,7 +53,15 @@ Script sẽ hỏi thông tin:
 - **Country**: VN
 - **State**: Hanoi
 - **Organization**: WorkDat PKI
-- **Passphrase**: Chọn passphrase mạnh (nhớ lưu lại!)
+- **Root CA Passphrase**: Nhập passphrase mạnh cho Root CA (nhớ lưu lại!)
+- **Intermediate CA Passphrase**: Nhập passphrase mạnh cho Intermediate CA (nhớ lưu lại!)
+
+**⚠️ Lưu ý quan trọng:**
+
+- Script sẽ yêu cầu bạn nhập passphrase **2 lần** để xác nhận
+- **KHÔNG** được để trống passphrase (nhấn Enter)
+- Passphrase phải có **ít nhất 4 ký tự**
+- **NÊN LƯU** passphrase ở nơi an toàn - bạn sẽ cần nó để ký certificates sau này! **Abc@123**
 
 Output:
 
@@ -94,7 +102,7 @@ import os
 # Configuration
 HOST = '0.0.0.0'
 PORT = 443
-CERT_FILE = '/root/ca/intermediate/certs/example.pki.cert.pem'
+CERT_FILE = '/root/ca/intermediate/certs/example.pki.bundle.pem'  # Bundle includes chain
 KEY_FILE = '/root/ca/intermediate/private/example.pki.key.pem'
 
 # Create HTTP handler
@@ -195,19 +203,28 @@ sudo python3 https-server.py
 
 ## Bước 5: Trust Root CA Certificate
 
+### Copy Root CA Certificate ra nơi truy cập được
+
+```bash
+# Copy ra thư mục home để browser có thể import
+sudo cp /root/ca/rootca/certs/ca.cert.pem ~/workdat-root-ca.crt
+sudo chown $USER:$USER ~/workdat-root-ca.crt
+chmod 644 ~/workdat-root-ca.crt
+```
+
 ### macOS
 
 ```bash
 sudo security add-trusted-cert \
     -d -r trustRoot \
     -k /Library/Keychains/System.keychain \
-    /root/ca/rootca/certs/ca.cert.pem
+    ~/workdat-root-ca.crt
 ```
 
 ### Ubuntu/Linux
 
 ```bash
-sudo cp /root/ca/rootca/certs/ca.cert.pem \
+sudo cp ~/workdat-root-ca.crt \
     /usr/local/share/ca-certificates/workdat-ca.crt
 sudo update-ca-certificates
 ```
@@ -216,14 +233,14 @@ sudo update-ca-certificates
 
 1. Settings → Privacy and security → Security
 2. Manage certificates → Authorities
-3. Import `/root/ca/rootca/certs/ca.cert.pem`
+3. Import → Browse to `~/workdat-root-ca.crt` (trong thư mục home của bạn)
 4. ✓ Check "Trust this certificate for identifying websites"
 
 ### Browser (Firefox)
 
 1. Settings → Privacy & Security → Certificates
 2. View Certificates → Authorities → Import
-3. Select `/root/ca/rootca/certs/ca.cert.pem`
+3. Browse to `~/workdat-root-ca.crt` (trong thư mục home của bạn)
 4. ✓ Trust for websites
 
 ## Bước 6: Truy cập Website
@@ -244,7 +261,7 @@ https://example.pki
 
 ```bash
 # Test với CA certificate
-curl --cacert /root/ca/rootca/certs/ca.cert.pem https://example.pki
+curl --cacert ~/workdat-root-ca.crt https://example.pki
 
 # Hoặc test mà không verify (development only)
 curl -k https://example.pki

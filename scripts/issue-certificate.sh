@@ -230,10 +230,11 @@ else
     exit 1
 fi
 
-# Create bundle for deployment
+# Create bundle for deployment (server cert + intermediate cert)
 BUNDLE_FILE="$INTERMEDIATE_CA_DIR/certs/${SAFE_CN}.bundle.pem"
-cat "$CERT_FILE" "$INTERMEDIATE_CA_DIR/certs/ca-chain.cert.pem" > "$BUNDLE_FILE"
+cat "$CERT_FILE" "$INTERMEDIATE_CA_DIR/certs/intermediate.cert.pem" > "$BUNDLE_FILE"
 chmod 444 "$BUNDLE_FILE"
+log_info "Certificate bundle created: $BUNDLE_FILE"
 
 # Display certificate info
 log_info "Certificate issued successfully!"

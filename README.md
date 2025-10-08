@@ -27,6 +27,7 @@ ca-implementation/
 │   ├── create-intermediate-ca.sh # Tạo Intermediate CA
 │   ├── issue-certificate.sh      # Cấp chứng chỉ
 │   ├── revoke-certificate.sh     # Thu hồi chứng chỉ
+│   ├── check-cert-expiry.sh      # Kiểm tra hạn chứng chỉ
 │   └── manage-crl.sh             # Quản lý CRL
 ├── config/                        # File cấu hình
 │   ├── root-ca.conf              # Config Root CA
@@ -73,7 +74,31 @@ sudo ./create-intermediate-ca.sh
 ### 4. Cấp chứng chỉ cho server
 
 ```bash
-./issue-certificate.sh server www.example.com
+sudo ./issue-certificate.sh server www.example.com
+```
+
+### 5. Kiểm tra hạn chứng chỉ
+
+```bash
+# Kiểm tra certificate từ file
+sudo ./check-cert-expiry.sh -f /root/ca/intermediate/certs/example.pki.cert.pem
+
+# Kiểm tra certificate của web server
+./check-cert-expiry.sh -h example.pki -p 443
+
+# Kiểm tra tất cả certificates trong CA
+sudo ./check-cert-expiry.sh -a
+```
+
+### 6. Thu hồi chứng chỉ
+
+```bash
+# Thu hồi certificate
+sudo ./revoke-certificate.sh /root/ca/intermediate/certs/example.pki.cert.pem
+
+# Cập nhật CRL
+sudo openssl ca -config /root/ca/intermediate/openssl.cnf -gencrl \
+    -out /root/ca/intermediate/crl/intermediate.crl.pem
 ```
 
 ## Nội dung chi tiết
@@ -154,9 +179,57 @@ cd tests
 - ✅ Hỗ trợ nhiều loại chứng chỉ (server, client, email, code signing)
 - ✅ CRL và OCSP support
 - ✅ Scripts tự động hóa hoàn chỉnh
+- ✅ Kiểm tra hạn certificate tự động
+- ✅ Thu hồi certificate và quản lý CRL
 - ✅ Logging và audit trail
 - ✅ Security best practices
 - ✅ Tài liệu chi tiết bằng tiếng Việt
+
+## Scripts Utilities
+
+### check-cert-expiry.sh
+
+Kiểm tra thời hạn certificate với các tùy chọn:
+
+```bash
+# Kiểm tra file certificate
+./check-cert-expiry.sh -f /path/to/cert.pem
+
+# Kiểm tra remote web server
+./check-cert-expiry.sh -h example.com -p 443
+
+# Kiểm tra tất cả certificates trong CA
+./check-cert-expiry.sh -a
+
+# Tùy chỉnh ngưỡng cảnh báo
+./check-cert-expiry.sh -h example.com -w 60 -c 14
+# -w: warning threshold (days)
+# -c: critical threshold (days)
+```
+
+**Exit codes:**
+- 0 = OK (certificate còn hạn)
+- 1 = Error/Expired
+- 2 = Critical (sắp hết hạn)
+- 3 = Warning
+
+### revoke-certificate.sh
+
+Thu hồi certificate và cập nhật CRL:
+
+```bash
+# Thu hồi certificate
+sudo ./revoke-certificate.sh /root/ca/intermediate/certs/example.pki.cert.pem
+
+# Kiểm tra CRL
+openssl crl -in /root/ca/intermediate/crl/intermediate.crl.pem -noout -text
+
+# Verify certificate có bị revoke không
+openssl verify -crl_check \
+    -CAfile /root/ca/intermediate/certs/ca-chain.cert.pem \
+    -CRLfile /root/ca/intermediate/crl/intermediate.crl.pem \
+    /root/ca/intermediate/certs/example.pki.cert.pem
+```
 
 ## Bảo mật
 

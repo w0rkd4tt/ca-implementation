@@ -11,6 +11,29 @@
 
 ## 1. Cấp phát Certificate
 
+### Tổng quan quy trình cấp certificate
+
+Quy trình cấp phát certificate gồm 5 bước chính:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ 1. Generate Private Key                                        │
+│    └─> Tạo cặp key (public/private) cho entity                │
+├─────────────────────────────────────────────────────────────────┤
+│ 2. Create Certificate Signing Request (CSR)                   │
+│    └─> Entity tạo CSR chứa public key + thông tin định danh   │
+├─────────────────────────────────────────────────────────────────┤
+│ 3. Submit CSR to CA                                            │
+│    └─> Gửi CSR đến CA để xin cấp certificate                  │
+├─────────────────────────────────────────────────────────────────┤
+│ 4. CA Signs Certificate                                        │
+│    └─> CA verify CSR và ký bằng private key của CA            │
+├─────────────────────────────────────────────────────────────────┤
+│ 5. Deploy Certificate                                          │
+│    └─> Cài đặt certificate + private key lên server           │
+└─────────────────────────────────────────────────────────────────┘
+```
+
 ### 1.1. Server Certificate (HTTPS/TLS)
 
 #### Sử dụng script tự động
@@ -20,16 +43,45 @@ cd /root/ca/scripts
 ./issue-certificate.sh server www.example.com example.com mail.example.com
 ```
 
-#### Manual process
+#### Manual process - Giải thích từng bước
 
 ```bash
 cd /root/ca
 
-# 1. Generate private key
+# ═══════════════════════════════════════════════════════════════
+# BƯỚC 1: Generate Private Key
+# ═══════════════════════════════════════════════════════════════
+# Mục đích: Tạo cặp key RSA 2048-bit (private + public key)
+# - Private key: Được giữ bí mật trên server, dùng để decrypt data
+# - Public key: Được nhúng trong certificate, dùng để encrypt data
+# Tại sao RSA 2048-bit?
+# - Đủ mạnh cho TLS (CA/Browser Forum yêu cầu tối thiểu 2048-bit)
+# - Nhanh hơn RSA 4096-bit mà vẫn đảm bảo security
+# ═══════════════════════════════════════════════════════════════
+
 openssl genrsa -out intermediate/private/www.example.com.key.pem 2048
 chmod 400 intermediate/private/www.example.com.key.pem
 
-# 2. Create CSR with SAN
+# chmod 400: Chỉ owner đọc được, không ai khác (bảo mật private key)
+
+# ═══════════════════════════════════════════════════════════════
+# BƯỚC 2: Create Certificate Signing Request (CSR)
+# ═══════════════════════════════════════════════════════════════
+# Mục đích: Tạo yêu cầu cấp certificate chứa:
+# - Public key (được extract từ private key)
+# - Thông tin định danh (Subject: CN, O, C, ST, L)
+# - Subject Alternative Names (SAN) - QUAN TRỌNG cho HTTPS!
+#
+# Tại sao cần SAN?
+# - Browsers hiện đại KHÔNG chấp nhận cert chỉ có CN
+# - SAN cho phép 1 cert bảo vệ nhiều domains
+# - RFC 6125 yêu cầu phải có SAN cho server certificates
+#
+# Tại sao dùng SHA-256?
+# - SHA-1 đã deprecated (bị collision attacks)
+# - SHA-256 là standard hiện tại, an toàn
+# ═══════════════════════════════════════════════════════════════
+
 cat > /tmp/san.cnf << EOF
 [req]
 distinguished_name = req_distinguished_name
@@ -56,19 +108,43 @@ openssl req -config /tmp/san.cnf \
     -new -sha256 -out intermediate/csr/www.example.com.csr.pem \
     -subj "/C=VN/ST=Hanoi/L=Hanoi/O=Example Org/CN=www.example.com"
 
-# 3. Sign certificate (398 days max)
-# Create temp config with SAN extensions
+# CSR chứa:
+# - Public key (từ private key)
+# - Subject: /C=VN/ST=Hanoi/L=Hanoi/O=Example Org/CN=www.example.com
+# - SAN: www.example.com, example.com, mail.example.com
+# - Signature: CSR được ký bởi private key để prove ownership
+
+# ═══════════════════════════════════════════════════════════════
+# BƯỚC 3: CA Signs Certificate
+# ═══════════════════════════════════════════════════════════════
+# Mục đích: CA verify CSR và tạo certificate
+# - CA kiểm tra CSR signature (verify ownership của private key)
+# - CA thêm extensions (basicConstraints, keyUsage, extendedKeyUsage)
+# - CA ký certificate bằng Intermediate CA private key
+#
+# Tại sao 398 days?
+# - CA/Browser Forum Baseline Requirements quy định:
+#   + Trước 1/3/2018: max 39 tháng (1185 days)
+#   + Từ 1/3/2018: max 825 days
+#   + Từ 1/9/2020: max 398 days (13 tháng)
+# - Mục đích: Force renewal thường xuyên, giảm thiệt hại nếu key bị lộ
+# ═══════════════════════════════════════════════════════════════
+
 cat intermediate/openssl.cnf > /tmp/sign.cnf
 cat >> /tmp/sign.cnf << EOF
 
 [server_cert_san]
-basicConstraints = CA:FALSE
-nsCertType = server
-subjectKeyIdentifier = hash
-authorityKeyIdentifier = keyid,issuer:always
+basicConstraints = CA:FALSE                    # Đây KHÔNG phải CA cert
+nsCertType = server                            # Netscape cert type (legacy)
+subjectKeyIdentifier = hash                    # ID của certificate
+authorityKeyIdentifier = keyid,issuer:always   # Link đến issuer (CA)
 keyUsage = critical, digitalSignature, keyEncipherment
-extendedKeyUsage = serverAuth
-subjectAltName = @alt_names
+# ^ keyUsage:
+#   - digitalSignature: Ký digital signatures (TLS handshake)
+#   - keyEncipherment: Encrypt keys (RSA key exchange)
+#   - critical: Extension này BẮT BUỘC phải hiểu
+extendedKeyUsage = serverAuth                  # Dùng cho TLS server auth
+subjectAltName = @alt_names                    # SAN extensions
 
 [alt_names]
 DNS.1 = www.example.com
@@ -82,17 +158,70 @@ openssl ca -config /tmp/sign.cnf \
     -in intermediate/csr/www.example.com.csr.pem \
     -out intermediate/certs/www.example.com.cert.pem
 
-chmod 444 intermediate/certs/www.example.com.cert.pem
+# openssl ca làm gì?
+# 1. Đọc CSR và verify signature
+# 2. Thêm serial number (từ intermediate/serial)
+# 3. Thêm extensions từ [server_cert_san]
+# 4. Ký certificate bằng Intermediate CA private key
+# 5. Lưu vào intermediate/newcerts/<serial>.pem
+# 6. Update intermediate/index.txt (certificate database)
+# 7. Increment intermediate/serial
 
-# 4. Verify
+chmod 444 intermediate/certs/www.example.com.cert.pem
+# chmod 444: Read-only cho mọi user (cert là public data)
+
+# ═══════════════════════════════════════════════════════════════
+# BƯỚC 4: Verify Certificate Chain
+# ═══════════════════════════════════════════════════════════════
+# Mục đích: Kiểm tra certificate có hợp lệ không
+# - Verify signature: Certificate được ký bởi Intermediate CA đúng không?
+# - Verify chain: Intermediate CA có được ký bởi Root CA không?
+# - Check expiry: Certificate còn hạn không?
+# ═══════════════════════════════════════════════════════════════
+
 openssl verify -CAfile intermediate/certs/ca-chain.cert.pem \
     intermediate/certs/www.example.com.cert.pem
 
-# 5. Create bundle for deployment
+# Output: www.example.com.cert.pem: OK
+# ca-chain.cert.pem chứa: Intermediate CA cert + Root CA cert
+
+# ═══════════════════════════════════════════════════════════════
+# BƯỚC 5: Create Bundle for Deployment
+# ═══════════════════════════════════════════════════════════════
+# Mục đích: Tạo bundle file cho web server
+# Bundle = Server cert + Intermediate CA cert
+#
+# Tại sao cần bundle?
+# - Client (browser) cần verify certificate chain
+# - Client có Root CA cert (sau khi user import)
+# - Server phải gửi: Server cert + Intermediate CA cert
+# - Client sẽ verify: Server cert <- Intermediate CA <- Root CA
+#
+# Tại sao KHÔNG bao gồm Root CA?
+# - Root CA đã có sẵn trong browser trust store
+# - Gửi Root CA là lãng phí bandwidth
+# ═══════════════════════════════════════════════════════════════
+
 cat intermediate/certs/www.example.com.cert.pem \
-    intermediate/certs/ca-chain.cert.pem > \
+    intermediate/certs/intermediate.cert.pem > \
     intermediate/certs/www.example.com.bundle.pem
+
+# Bundle structure:
+# ┌─────────────────────────────────────────┐
+# │ www.example.com.cert.pem (End-entity)  │
+# ├─────────────────────────────────────────┤
+# │ intermediate.cert.pem (Intermediate CA)│
+# └─────────────────────────────────────────┘
+#
+# Client verification:
+# www.example.com.cert ← Intermediate CA ← Root CA (in browser)
+#        (from bundle)      (from bundle)    (pre-installed)
 ```
+
+**Certificate đã sẵn sàng deploy!**
+- Private key: `intermediate/private/www.example.com.key.pem` (BẢO MẬT!)
+- Certificate: `intermediate/certs/www.example.com.cert.pem`
+- Bundle: `intermediate/certs/www.example.com.bundle.pem` (cho web server)
 
 ### 1.2. Client Certificate (mTLS)
 
@@ -334,6 +463,49 @@ done
 
 ## 4. Thu hồi Certificate
 
+### Tổng quan quy trình thu hồi certificate
+
+Thu hồi certificate là quá trình vô hiệu hóa certificate trước khi hết hạn.
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│ Tại sao cần thu hồi certificate?                               │
+├──────────────────────────────────────────────────────────────────┤
+│ 1. Private key bị lộ (keyCompromise)                           │
+│    → Attacker có thể impersonate server                        │
+│                                                                  │
+│ 2. Certificate bị cấp nhầm (incorrect information)             │
+│    → Domain ownership thay đổi                                 │
+│                                                                  │
+│ 3. Employee rời công ty (affiliationChanged)                   │
+│    → Không còn quyền sử dụng certificate                       │
+│                                                                  │
+│ 4. Certificate bị thay thế (superseded)                        │
+│    → Đã cấp certificate mới                                    │
+│                                                                  │
+│ 5. Server ngừng hoạt động (cessationOfOperation)               │
+│    → Không cần certificate nữa                                 │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+**Quy trình thu hồi:**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ 1. Revoke Certificate                                          │
+│    └─> Đánh dấu certificate là "Revoked" trong database       │
+├─────────────────────────────────────────────────────────────────┤
+│ 2. Update CRL (Certificate Revocation List)                   │
+│    └─> Tạo danh sách certificates bị thu hồi                  │
+├─────────────────────────────────────────────────────────────────┤
+│ 3. Publish CRL                                                 │
+│    └─> Đưa CRL lên web server để clients download             │
+├─────────────────────────────────────────────────────────────────┤
+│ 4. Update OCSP (Optional)                                      │
+│    └─> Cập nhật OCSP responder cho real-time checking         │
+└─────────────────────────────────────────────────────────────────┘
+```
+
 ### 4.1. Sử dụng script
 
 ```bash
@@ -341,21 +513,118 @@ cd /root/ca/scripts
 ./revoke-certificate.sh /root/ca/intermediate/certs/compromised.cert.pem keyCompromise
 ```
 
-### 4.2. Manual revocation
+### 4.2. Manual revocation - Giải thích từng bước
 
 ```bash
-# Revoke certificate
+# ═══════════════════════════════════════════════════════════════
+# BƯỚC 1: Revoke Certificate
+# ═══════════════════════════════════════════════════════════════
+# Mục đích: Đánh dấu certificate không còn hợp lệ
+# - CA cập nhật database (index.txt)
+# - Thay đổi status từ "V" (Valid) → "R" (Revoked)
+# - Ghi lại thời gian revoke và lý do
+# ═══════════════════════════════════════════════════════════════
+
 openssl ca -config intermediate/openssl.cnf \
     -revoke intermediate/certs/compromised.cert.pem \
     -crl_reason keyCompromise
 
-# Update CRL
+# openssl ca -revoke làm gì?
+# 1. Đọc certificate và lấy serial number
+# 2. Tìm entry trong intermediate/index.txt
+# 3. Update status: V → R
+# 4. Thêm revocation date và reason
+#
+# Trước revoke (index.txt):
+# V    250101120000Z        1000  unknown  /C=VN/ST=Hanoi/CN=compromised.com
+#
+# Sau revoke (index.txt):
+# R    250101120000Z 241215093000Z,keyCompromise  1000  unknown  /C=VN/ST=Hanoi/CN=compromised.com
+# ^    ^             ^              ^              ^     ^        ^
+# |    |             |              |              |     |        └─ Subject DN
+# |    |             |              |              |     └─ Unknown (deprecated)
+# |    |             |              |              └─ Serial number
+# |    |             |              └─ Revocation reason
+# |    |             └─ Revocation date (YYMMDDHHMMSSZ)
+# |    └─ Expiry date
+# └─ Status: R = Revoked
+
+# ═══════════════════════════════════════════════════════════════
+# BƯỚC 2: Generate CRL (Certificate Revocation List)
+# ═══════════════════════════════════════════════════════════════
+# Mục đích: Tạo danh sách certificates bị thu hồi
+# - CRL chứa serial numbers của revoked certificates
+# - CRL được CA ký để chống giả mạo
+# - Clients download CRL để kiểm tra certificate status
+# ═══════════════════════════════════════════════════════════════
+
 openssl ca -config intermediate/openssl.cnf \
     -gencrl -out intermediate/crl/intermediate.crl.pem
 
-# Convert to DER
+# openssl ca -gencrl làm gì?
+# 1. Đọc tất cả revoked entries từ index.txt
+# 2. Tạo CRL structure chứa:
+#    - Issuer: Intermediate CA
+#    - thisUpdate: Thời điểm tạo CRL
+#    - nextUpdate: Khi nào phải update CRL (default: 30 days)
+#    - Revoked Certificates list:
+#      * Serial Number
+#      * Revocation Date
+#      * CRL Reason Code
+# 3. Ký CRL bằng Intermediate CA private key
+# 4. Output: intermediate.crl.pem (PEM format)
+
+# CRL structure:
+# Certificate Revocation List (CRL):
+#     Version 2 (0x1)
+#     Signature Algorithm: sha256WithRSAEncryption
+#     Issuer: /C=VN/ST=Hanoi/O=Example Org/CN=Intermediate CA
+#     Last Update: Dec 15 09:30:00 2024 GMT
+#     Next Update: Jan 14 09:30:00 2025 GMT
+#     CRL extensions:
+#         X509v3 Authority Key Identifier:
+#             keyid:...
+# Revoked Certificates:
+#     Serial Number: 1000
+#         Revocation Date: Dec 15 09:30:00 2024 GMT
+#         CRL entry extensions:
+#             X509v3 CRL Reason Code:
+#                 Key Compromise
+#     Serial Number: 1001
+#         Revocation Date: Dec 14 15:20:00 2024 GMT
+#         CRL entry extensions:
+#             X509v3 CRL Reason Code:
+#                 Superseded
+
+# ═══════════════════════════════════════════════════════════════
+# BƯỚC 3: Convert CRL to DER Format (Optional)
+# ═══════════════════════════════════════════════════════════════
+# Mục đích: Convert sang binary format
+# - PEM: Base64-encoded, dùng cho command-line tools
+# - DER: Binary, nhỏ hơn, dùng cho browsers/applications
+# ═══════════════════════════════════════════════════════════════
+
 openssl crl -in intermediate/crl/intermediate.crl.pem \
     -outform DER -out intermediate/crl/intermediate.crl
+
+# Browsers thường dùng DER format khi download CRL
+```
+
+**Verification - Kiểm tra certificate đã bị revoke chưa:**
+
+```bash
+# Check certificate với CRL
+openssl verify -crl_check \
+    -CAfile intermediate/certs/ca-chain.cert.pem \
+    -CRLfile intermediate/crl/intermediate.crl.pem \
+    intermediate/certs/compromised.cert.pem
+
+# Output nếu bị revoke:
+# compromised.cert.pem: CN = compromised.com
+# error 23 at 0 depth lookup: certificate revoked
+#
+# Output nếu OK:
+# compromised.cert.pem: OK
 ```
 
 ### 4.3. Revocation Reasons

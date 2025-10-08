@@ -77,9 +77,9 @@ EOF
             -out "$CERT_DIR/$DOMAIN.crt" \
             -batch
 
-        # Create bundle
+        # Create bundle (server cert + intermediate cert)
         cat "$CERT_DIR/$DOMAIN.crt" \
-            "$CA_ROOT/intermediate/certs/ca-chain.cert.pem" > \
+            "$CA_ROOT/intermediate/certs/intermediate.cert.pem" > \
             "$CERT_DIR/$DOMAIN.bundle.crt"
 
         rm "$TMP_CONF"
