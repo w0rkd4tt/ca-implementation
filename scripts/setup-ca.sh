@@ -308,8 +308,9 @@ create_root_ca() {
     log_info "Generating Root CA private key (4096-bit RSA)..."
     log_warn "You will be prompted to enter a passphrase. REMEMBER THIS PASSPHRASE!"
 
-    openssl genrsa -aes256 \
-        -out "$ROOT_CA_DIR/private/ca.key.pem" 4096
+    openssl genpkey -algorithm RSA -aes256 \
+        -pkeyopt rsa_keygen_bits:4096 \
+        -out "$ROOT_CA_DIR/private/ca.key.pem"
 
     chmod 400 "$ROOT_CA_DIR/private/ca.key.pem"
 
@@ -340,8 +341,9 @@ create_intermediate_ca() {
     log_info "Generating Intermediate CA private key (4096-bit RSA)..."
     log_warn "You will be prompted to enter a passphrase for Intermediate CA."
 
-    openssl genrsa -aes256 \
-        -out "$INTERMEDIATE_CA_DIR/private/intermediate.key.pem" 4096
+    openssl genpkey -algorithm RSA -aes256 \
+        -pkeyopt rsa_keygen_bits:4096 \
+        -out "$INTERMEDIATE_CA_DIR/private/intermediate.key.pem"
 
     chmod 400 "$INTERMEDIATE_CA_DIR/private/intermediate.key.pem"
 
