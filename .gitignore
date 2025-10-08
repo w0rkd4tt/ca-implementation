@@ -1,0 +1,67 @@
+# CA Private Keys and Sensitive Data
+*.key
+*.key.pem
+*.p12
+*.pfx
+*.enc
+
+# Certificate Signing Requests (may contain sensitive info)
+*.csr
+*.csr.pem
+
+# Backup files
+*.tar.gz
+*.tar.gz.enc
+*.backup
+*-backup-*
+
+# CA Database files (contain sensitive serial numbers)
+index.txt*
+serial*
+crlnumber*
+.rand
+
+# Temporary files
+*.tmp
+*.temp
+*~
+.*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
+*.log
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-*
+
+# Test certificates (optional - comment out if you want to track them)
+# examples/*/certs/
+# tests/
+
+# Local configuration overrides
+config.local
+*.local.conf
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Certificates directory (uncomment if you don't want to track issued certs)
+# certs/
+# newcerts/
+
+# Private directories
+private/
