@@ -164,6 +164,44 @@ sudo openssl ca -config /root/ca/intermediate/openssl.cnf -gencrl \
 - Debug certificate issues
 - Verification problems
 
+## Policy và Rationale Documents
+
+### 6. [Certificate Policy & CPS](docs/07-certificate-policy.md)
+
+- Tại sao cần Certificate Policy (CP) và Certificate Practice Statement (CPS)
+- Cấu trúc CP theo RFC 3647
+- Example Certificate Policy đầy đủ
+- Policy OID và implementation guidelines
+- Legal và compliance context
+
+### 7. [PKI Design Rationale](docs/08-design-rationale.md)
+
+- **Tại sao** thiết kế như vậy (không chỉ "làm thế nào")
+- Architecture decisions: Two-tier hierarchy, Offline Root CA
+- Cryptographic choices: RSA 4096 vs ECC, SHA-256 rationale
+- Certificate validity periods: 398 days explained
+- Revocation strategy: CRL + OCSP + OCSP Stapling
+- Operational security: Key rotation, M-of-N key ceremony
+
+### 8. [Threat Model và Risk Analysis](docs/09-threat-model.md)
+
+- STRIDE threat modeling methodology
+- Attack tree analysis
+- Real-world PKI incidents (DigiNotar, Comodo, Let's Encrypt)
+- Attack scenarios và impact assessment
+- Risk matrix và mitigation strategies
+- Defense in depth layers
+
+### 9. [Compliance và Standards](docs/10-compliance-standards.md)
+
+- Tại sao standards matter
+- Key RFCs: RFC 5280 (X.509), RFC 6960 (OCSP), RFC 6066 (OCSP Stapling)
+- CA/Browser Forum Baseline Requirements
+- WebTrust Principles
+- Certificate Transparency (CT)
+- Compliance frameworks: PCI DSS, SOC 2, GDPR
+- Audit and certification process
+
 ## Ví dụ Use Cases
 
 ### Use Case 1: HTTPS Web Server
