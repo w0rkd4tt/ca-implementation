@@ -1,0 +1,80 @@
+# OpenSSL OCSP Responder Configuration
+# This configuration is for OCSP (Online Certificate Status Protocol) Responder
+
+[ default ]
+name                    = intermediate
+domain_suffix           = example.com
+aia_url                 = http://ca.$domain_suffix/$name.cert.pem
+crl_url                 = http://ca.$domain_suffix/$name.crl.pem
+ocsp_url                = http://ocsp.$domain_suffix:8888
+default_ca              = CA_default
+name_opt                = utf8,esc_ctrl,multiline,lname,align
+
+[ CA_default ]
+home                    = /root/ca
+base_dir                = $home/$name
+certificate             = $base_dir/certs/$name.cert.pem
+private_key             = $base_dir/private/$name.key.pem
+new_certs_dir           = $base_dir/newcerts
+serial                  = $base_dir/serial
+crlnumber               = $base_dir/crlnumber
+database                = $base_dir/index.txt
+unique_subject          = no
+default_days            = 375
+default_crl_days        = 30
+default_md              = sha256
+policy                  = policy_loose
+email_in_dn             = no
+preserve                = no
+name_opt                = $name_opt
+cert_opt                = ca_default
+copy_extensions         = copy
+
+[ policy_loose ]
+countryName             = optional
+stateOrProvinceName     = optional
+localityName            = optional
+organizationName        = optional
+organizationalUnitName  = optional
+commonName              = supplied
+emailAddress            = optional
+
+[ req ]
+default_bits            = 2048
+distinguished_name      = req_distinguished_name
+string_mask             = utf8only
+default_md              = sha256
+x509_extensions         = v3_ocsp
+
+[ req_distinguished_name ]
+countryName                     = Country Name (2 letter code)
+stateOrProvinceName             = State or Province Name
+localityName                    = Locality Name
+0.organizationName              = Organization Name
+organizationalUnitName          = Organizational Unit Name
+commonName                      = Common Name
+emailAddress                    = Email Address
+
+countryName_default             = VN
+stateOrProvinceName_default     = Hanoi
+localityName_default            = Hanoi
+0.organizationName_default      = Example Organization
+organizationalUnitName_default  = OCSP Services
+commonName_default              = OCSP Responder
+emailAddress_default            = ocsp@example.com
+
+[ v3_ocsp ]
+# Extensions for OCSP Signing Certificate
+basicConstraints = CA:FALSE
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid,issuer
+keyUsage = critical, digitalSignature
+extendedKeyUsage = critical, OCSPSigning
+
+[ ocsp_cert ]
+# Extension to add when signing OCSP certificate
+basicConstraints = CA:FALSE
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid,issuer:always
+keyUsage = critical, digitalSignature
+extendedKeyUsage = critical, OCSPSigning

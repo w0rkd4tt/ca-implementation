@@ -21,18 +21,18 @@ ca-implementation/
 │   ├── 02-ca-setup.md            # Hướng dẫn cài đặt CA
 │   ├── 03-certificate-management.md  # Quản lý chứng chỉ
 │   ├── 04-best-practices.md      # Best practices
-│   └── 05-troubleshooting.md     # Xử lý sự cố
+│   ├── 05-troubleshooting.md     # Xử lý sự cố
+│   └── 06-ocsp-guide.md          # Hướng dẫn OCSP
 ├── scripts/                       # Scripts tự động hóa
 │   ├── setup-ca.sh               # Thiết lập CA
 │   ├── create-intermediate-ca.sh # Tạo Intermediate CA
 │   ├── issue-certificate.sh      # Cấp chứng chỉ
 │   ├── revoke-certificate.sh     # Thu hồi chứng chỉ
 │   ├── check-cert-expiry.sh      # Kiểm tra hạn chứng chỉ
-│   └── manage-crl.sh             # Quản lý CRL
+│   ├── setup-ocsp.sh             # Thiết lập OCSP responder
+│   └── check-ocsp.sh             # Kiểm tra OCSP status
 ├── config/                        # File cấu hình
-│   ├── root-ca.conf              # Config Root CA
-│   ├── intermediate-ca.conf      # Config Intermediate CA
-│   └── server-cert.conf          # Config Server Certificate
+│   ├── ocsp.cnf                  # Config OCSP responder
 ├── examples/                      # Ví dụ thực hành
 │   ├── web-server/               # HTTPS web server
 │   ├── email-signing/            # S/MIME email
@@ -90,7 +90,20 @@ sudo ./check-cert-expiry.sh -f /root/ca/intermediate/certs/example.pki.cert.pem
 sudo ./check-cert-expiry.sh -a
 ```
 
-### 6. Thu hồi chứng chỉ
+### 6. Thiết lập OCSP Responder
+
+```bash
+# Setup OCSP responder
+sudo ./setup-ocsp.sh
+
+# Start OCSP responder
+sudo /root/ca/intermediate/ocsp-responder.sh
+
+# Kiểm tra OCSP status
+./check-ocsp.sh -f /root/ca/intermediate/certs/example.pki.cert.pem
+```
+
+### 7. Thu hồi chứng chỉ
 
 ```bash
 # Thu hồi certificate
@@ -99,6 +112,9 @@ sudo ./revoke-certificate.sh /root/ca/intermediate/certs/example.pki.cert.pem
 # Cập nhật CRL
 sudo openssl ca -config /root/ca/intermediate/openssl.cnf -gencrl \
     -out /root/ca/intermediate/crl/intermediate.crl.pem
+
+# Kiểm tra OCSP status sau khi revoke
+./check-ocsp.sh -f /root/ca/intermediate/certs/example.pki.cert.pem
 ```
 
 ## Nội dung chi tiết
@@ -125,7 +141,14 @@ sudo openssl ca -config /root/ca/intermediate/openssl.cnf -gencrl \
 - Gia hạn chứng chỉ
 - Thu hồi chứng chỉ
 - Quản lý Certificate Revocation List (CRL)
-- OCSP (Online Certificate Status Protocol)
+
+### 3.5. [OCSP Implementation](docs/06-ocsp-guide.md)
+
+- OCSP protocol và hoạt động
+- OCSP vs CRL comparison
+- Setup OCSP Responder
+- OCSP Stapling configuration
+- Production deployment và monitoring
 
 ### 4. [Best Practices](docs/04-best-practices.md)
 
@@ -186,6 +209,60 @@ cd tests
 - ✅ Tài liệu chi tiết bằng tiếng Việt
 
 ## Scripts Utilities
+
+### setup-ocsp.sh
+
+Thiết lập OCSP (Online Certificate Status Protocol) Responder:
+
+```bash
+# Setup OCSP responder
+sudo ./setup-ocsp.sh
+
+# Start OCSP responder (Method 1: Manual)
+sudo /root/ca/intermediate/ocsp-responder.sh
+
+# Start OCSP responder (Method 2: Systemd)
+sudo systemctl daemon-reload
+sudo systemctl start ocsp-responder
+sudo systemctl enable ocsp-responder
+
+# Stop OCSP responder
+sudo /root/ca/intermediate/ocsp-stop.sh
+# OR: sudo systemctl stop ocsp-responder
+
+# View logs
+tail -f /var/log/ocsp-responder.log
+# OR: sudo journalctl -u ocsp-responder -f
+```
+
+Script tự động:
+- ✅ Tạo OCSP signing key và certificate
+- ✅ Tạo startup/stop scripts
+- ✅ Tạo systemd service file
+- ✅ Configure OCSP responder
+
+### check-ocsp.sh
+
+Kiểm tra trạng thái certificate qua OCSP:
+
+```bash
+# Check local certificate file
+./check-ocsp.sh -f /path/to/cert.pem
+
+# Check remote HTTPS server
+./check-ocsp.sh -h example.com -p 443
+
+# Use custom OCSP URL
+./check-ocsp.sh -f cert.pem -u http://ocsp.example.com:8888
+
+# Verbose output
+./check-ocsp.sh -f cert.pem -v
+```
+
+**Exit codes:**
+- 0 = Certificate is GOOD
+- 1 = Certificate is REVOKED or ERROR
+- 2 = OCSP responder not available
 
 ### check-cert-expiry.sh
 

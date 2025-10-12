@@ -359,13 +359,89 @@ Cập nhật `/etc/hosts`:
 - **ROTATE** certificates trước khi hết hạn
 - Đây là môi trường **LEARNING** - không dùng cho production!
 
+## Bước 6 (Optional): Setup OCSP Responder
+
+OCSP (Online Certificate Status Protocol) cho phép kiểm tra trạng thái certificate real-time.
+
+### 6.1. Setup OCSP
+
+```bash
+cd /root/ca/scripts
+sudo ./setup-ocsp.sh
+```
+
+Script sẽ:
+- ✅ Tạo OCSP signing certificate
+- ✅ Tạo startup/stop scripts
+- ✅ Configure OCSP responder
+
+### 6.2. Start OCSP Responder
+
+**Method 1: Manual (for testing)**
+
+```bash
+sudo /root/ca/intermediate/ocsp-responder.sh
+```
+
+**Method 2: Systemd service (recommended)**
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl start ocsp-responder
+sudo systemctl enable ocsp-responder
+
+# Check status
+sudo systemctl status ocsp-responder
+
+# View logs
+sudo journalctl -u ocsp-responder -f
+```
+
+### 6.3. Test OCSP
+
+```bash
+# Check certificate status
+cd /root/ca/scripts
+./check-ocsp.sh -f /root/ca/intermediate/certs/example.pki.cert.pem
+
+# Expected output:
+# ✓ Certificate Status: GOOD ✓
+# ✓ Certificate is valid and not revoked
+```
+
+**Test với remote server:**
+
+```bash
+./check-ocsp.sh -h example.pki -p 8443
+```
+
+### 6.4. Test OCSP với Revoked Certificate
+
+```bash
+# Revoke a certificate
+sudo ./revoke-certificate.sh /root/ca/intermediate/certs/example.pki.cert.pem
+
+# Check OCSP (should show REVOKED)
+./check-ocsp.sh -f /root/ca/intermediate/certs/example.pki.cert.pem
+
+# Expected output:
+# ✗ Certificate Status: REVOKED ✗
+# ✗ Revocation Reason: keyCompromise
+```
+
+**OCSP URLs:**
+- Local: `http://localhost:8888`
+- Custom: Specify với flag `-u`
+
+Xem thêm: [OCSP Guide](docs/06-ocsp-guide.md)
+
 ## Next Steps
 
 - [Quản lý Certificate Lifecycle](docs/03-certificate-management.md)
 - [Revoke Certificates](docs/03-certificate-management.md#revocation)
-- [Setup OCSP](docs/03-certificate-management.md#ocsp)
+- [OCSP Implementation Guide](docs/06-ocsp-guide.md)
 - [Best Practices](docs/04-best-practices.md)
 
 ---
 
-**Congratulations! 🎉** Bạn đã setup thành công CA và HTTPS server với domain tùy chỉnh!
+**Congratulations! 🎉** Bạn đã setup thành công CA, HTTPS server, và OCSP responder!
