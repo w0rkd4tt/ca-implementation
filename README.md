@@ -358,9 +358,165 @@ openssl verify -crl_check \
 
 ## Tài liệu tham khảo
 
-- [RFC 5280 - Internet X.509 PKI Certificate and CRL Profile](https://tools.ietf.org/html/rfc5280)
-- [OpenSSL Documentation](https://www.openssl.org/docs/)
-- [CA/Browser Forum Baseline Requirements](https://cabforum.org/baseline-requirements-documents/)
+### RFCs (Request for Comments)
+
+**Core PKI Standards:**
+- [RFC 5280 - X.509 PKI Certificate and CRL Profile](https://tools.ietf.org/html/rfc5280) - Bible của PKI, định nghĩa certificate format
+- [RFC 6960 - OCSP (Online Certificate Status Protocol)](https://tools.ietf.org/html/rfc6960) - Real-time revocation checking
+- [RFC 6066 - TLS Extensions](https://tools.ietf.org/html/rfc6066) - Bao gồm OCSP Stapling
+- [RFC 3647 - Certificate Policy and CPS Framework](https://tools.ietf.org/html/rfc3647) - Template cho CP/CPS
+- [RFC 5280 - PKIX Certificate and CRL Profile](https://datatracker.ietf.org/doc/html/rfc5280) - X.509 v3 certificates
+
+**Cryptography Standards:**
+- [RFC 3279 - Algorithms and Identifiers for PKIX](https://tools.ietf.org/html/rfc3279) - RSA, DSA, ECDSA
+- [RFC 4055 - Additional Algorithms for PKIX](https://tools.ietf.org/html/rfc4055) - SHA-256, SHA-384, SHA-512
+- [RFC 5758 - Additional Algorithms and Identifiers](https://tools.ietf.org/html/rfc5758) - SHA-2 family
+
+**Certificate Extensions:**
+- [RFC 5280 Section 4.2 - Certificate Extensions](https://datatracker.ietf.org/doc/html/rfc5280#section-4.2) - basicConstraints, keyUsage, etc.
+- [RFC 6962 - Certificate Transparency](https://tools.ietf.org/html/rfc6962) - Public logging of certificates
+
+### NIST Standards
+
+**Key Management:**
+- [NIST SP 800-57 Part 1 - Recommendation for Key Management](https://csrc.nist.gov/publications/detail/sp/800-57-part-1/rev-5/final) - Key lifecycle management
+- [NIST SP 800-57 Part 2 - Best Practices for Key Management](https://csrc.nist.gov/publications/detail/sp/800-57-part-2/rev-1/final)
+
+**Cryptographic Standards:**
+- [FIPS 140-2 - Security Requirements for Cryptographic Modules](https://csrc.nist.gov/publications/detail/fips/140/2/final)
+- [FIPS 140-3 - Security Requirements for Cryptographic Modules (Updated)](https://csrc.nist.gov/publications/detail/fips/140/3/final)
+- [NIST SP 800-131A - Transitioning to Cryptographic Algorithms](https://csrc.nist.gov/publications/detail/sp/800-131a/rev-2/final) - Algorithm recommendations
+
+**PKI Guidelines:**
+- [NIST SP 800-32 - Introduction to Public Key Technology and PKI](https://csrc.nist.gov/publications/detail/sp/800-32/final)
+
+### Industry Standards and Requirements
+
+**CA/Browser Forum:**
+- [Baseline Requirements for SSL/TLS Certificates](https://cabforum.org/baseline-requirements-documents/) - Mandatory for public CAs
+- [Network Security Requirements](https://cabforum.org/network-security-requirements/) - Infrastructure security
+- [EV SSL Certificate Guidelines](https://cabforum.org/extended-validation/) - Extended Validation requirements
+
+**WebTrust:**
+- [WebTrust Principles and Criteria for CAs](https://www.cpacanada.ca/en/business-and-accounting-resources/audit-and-assurance/overview-of-webtrust-services) - Audit framework
+- [WebTrust for Certification Authorities - SSL Baseline with Network Security](https://www.cpacanada.ca/-/media/site/operational/ms-member-services/docs/webtrust/07280-ms-webtrust-for-certification-authorities-ssl-baseline-with-network-security-v2-7.pdf)
+
+**ETSI (European Standards):**
+- [ETSI EN 319 411-1 - Policy Requirements for CAs (Part 1: General)](https://www.etsi.org/deliver/etsi_en/319400_319499/31941101/01.02.02_60/en_31941101v010202p.pdf)
+- [ETSI EN 319 411-2 - Policy Requirements for CAs (Part 2: NCP+)](https://www.etsi.org/deliver/etsi_en/319400_319499/31941102/02.02.02_60/en_31941102v020202p.pdf)
+
+### Compliance Frameworks
+
+**Payment Card Industry:**
+- [PCI DSS v4.0 - Payment Card Industry Data Security Standard](https://www.pcisecuritystandards.org/document_library/) - Requirements 3, 4, 8, 10
+
+**Service Organization Controls:**
+- [SOC 2 - Trust Service Criteria](https://www.aicpa.org/interestareas/frc/assuranceadvisoryservices/aicpasoc2report.html) - Security, availability, confidentiality
+
+**International Standards:**
+- [ISO/IEC 27001 - Information Security Management](https://www.iso.org/isoiec-27001-information-security.html)
+- [ISO/IEC 27002 - Code of Practice for Information Security Controls](https://www.iso.org/standard/75652.html)
+
+**Regional Regulations:**
+- [eIDAS Regulation (EU)](https://digital-strategy.ec.europa.eu/en/policies/eidas-regulation) - Electronic identification and trust services
+- [GDPR - General Data Protection Regulation](https://gdpr.eu/) - Privacy considerations for PKI
+
+### Books and Publications
+
+**Comprehensive PKI Resources:**
+- **"PKI: Implementing and Managing E-Security"** by Andrew Nash, William Duane, Celia Joseph, Derek Brink
+- **"Understanding PKI: Concepts, Standards, and Deployment Considerations"** by Carlisle Adams, Steve Lloyd
+- **"Network Security with OpenSSL"** by John Viega, Matt Messier, Pravir Chandra
+- **"Bulletproof SSL and TLS"** by Ivan Ristić - Comprehensive TLS/SSL guide
+
+**Security and Cryptography:**
+- **"Applied Cryptography"** by Bruce Schneier - Cryptographic fundamentals
+- **"Cryptography Engineering"** by Niels Ferguson, Bruce Schneier, Tadayoshi Kohno
+- **"Security Engineering"** by Ross Anderson - Chapter 21 on PKI
+
+### Online Resources
+
+**OpenSSL Documentation:**
+- [OpenSSL Official Documentation](https://www.openssl.org/docs/) - Command reference
+- [OpenSSL Cookbook](https://www.feistyduck.com/library/openssl-cookbook/) by Ivan Ristić - Free PDF
+- [OpenSSL Command-Line HOWTO](https://www.madboa.com/geek/openssl/) - Practical examples
+
+**Certificate Transparency:**
+- [crt.sh - Certificate Search](https://crt.sh/) - Search CT logs
+- [Certificate Transparency Log List](https://www.certificate-transparency.org/known-logs) - All CT logs
+- [Google Certificate Transparency](https://github.com/google/certificate-transparency) - Google's CT project
+
+**Security Research:**
+- [CVE Details - SSL/TLS Vulnerabilities](https://www.cvedetails.com/) - Known vulnerabilities
+- [SSL Labs - SSL/TLS Best Practices](https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices)
+- [Mozilla SSL Configuration Generator](https://ssl-config.mozilla.org/) - Modern TLS configs
+
+**PKI Tools and Libraries:**
+- [Let's Encrypt Documentation](https://letsencrypt.org/docs/) - Automated CA
+- [Cloudflare CFSSL](https://github.com/cloudflare/cfssl) - PKI toolkit
+- [Boulder (Let's Encrypt CA Software)](https://github.com/letsencrypt/boulder) - Production CA implementation
+- [PyCA/cryptography](https://cryptography.io/) - Python crypto library
+- [Bouncy Castle](https://www.bouncycastle.org/) - Java/C# crypto library
+
+### Real-World Incidents and Case Studies
+
+**Famous PKI Breaches:**
+- [DigiNotar CA Compromise (2011)](https://en.wikipedia.org/wiki/DigiNotar) - Lessons in CA security
+- [Comodo CA Incident (2011)](https://blog.comodo.com/other/the-recent-ra-compromise/) - RA compromise
+- [Symantec Mis-issuance](https://security.googleblog.com/2017/09/chromes-plan-to-distrust-symantec.html) - Google distrusts Symantec
+- [Let's Encrypt CAA Bug](https://community.letsencrypt.org/t/revoking-certain-certificates-on-march-4/114864) - 3M certs revoked
+
+**Analysis Articles:**
+- [How Certificate Transparency Works](https://certificate.transparency.dev/howctworks/) - Visual explanation
+- [The Sorry State of SSL](https://www.eff.org/deeplinks/2011/10/how-secure-https-today) - EFF analysis
+- [HTTPS adoption statistics](https://transparencyreport.google.com/https/overview) - Google transparency report
+
+### Blogs and Forums
+
+**Security Blogs:**
+- [Troy Hunt's Blog](https://www.troyhunt.com/) - HTTPS and certificate security
+- [Scott Helme's Blog](https://scotthelme.co.uk/) - Security headers, HTTPS
+- [The Cloudflare Blog](https://blog.cloudflare.com/) - PKI and crypto topics
+- [Mozilla Security Blog](https://blog.mozilla.org/security/) - Certificate policy updates
+
+**Communities:**
+- [Let's Encrypt Community](https://community.letsencrypt.org/) - ACME and automation
+- [Stack Exchange - Security](https://security.stackexchange.com/questions/tagged/pki) - PKI Q&A
+- [/r/PKI Subreddit](https://www.reddit.com/r/PKI/) - PKI discussions
+
+### Video Resources
+
+**Conference Talks:**
+- [DEF CON PKI Talks](https://www.youtube.com/results?search_query=defcon+pki) - Security conference talks
+- [Black Hat PKI Presentations](https://www.youtube.com/results?search_query=black+hat+pki)
+- [RSA Conference - PKI Sessions](https://www.youtube.com/c/RSAConference)
+
+**Educational Videos:**
+- [Computerphile - Public Key Cryptography](https://www.youtube.com/watch?v=GSIDS_lvRv4)
+- [How SSL/TLS Works](https://www.youtube.com/results?search_query=how+ssl+tls+works)
+
+### Tools for Testing and Validation
+
+**SSL/TLS Testing:**
+- [SSL Labs SSL Test](https://www.ssllabs.com/ssltest/) - Grade your HTTPS configuration
+- [testssl.sh](https://github.com/drwetter/testssl.sh) - Command-line SSL/TLS tester
+- [sslscan](https://github.com/rbsec/sslscan) - Fast SSL/TLS scanner
+
+**Certificate Analysis:**
+- [Certificate Decoder](https://www.sslshopper.com/certificate-decoder.html) - View certificate details
+- [CSR Decoder](https://www.sslshopper.com/csr-decoder.html) - Decode CSR files
+- [SSL Checker](https://www.sslshopper.com/ssl-checker.html) - Check SSL installation
+
+### Vietnamese Resources
+
+**Tiếng Việt:**
+- [Tìm hiểu về PKI và Certificate Authority](https://viblo.asia/tags/pki) - Viblo articles
+- [Hướng dẫn triển khai HTTPS](https://kipalog.com/tags/https) - Kipalog guides
+- [Bảo mật ứng dụng web với SSL/TLS](https://techtalk.vn/tag/ssl-tls) - TechTalk articles
+
+---
+
+> **Note:** Tài liệu tham khảo được cập nhật thường xuyên. Kiểm tra phiên bản mới nhất của standards và RFCs.
 
 ## Tác giả
 
